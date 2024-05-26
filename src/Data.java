@@ -60,6 +60,7 @@ class PlayerInfo { // 一条玩家数据（可独立用于存储）
 
 class Record implements Serializable { // 一条玩家对局数据（可独立用于存储）
 	private static final long serialVersionUID = 1L;
+	private static final Object lock = new Object();
 	String id;
 	LocalDateTime time;
 	int player_num;
@@ -77,17 +78,20 @@ class Record implements Serializable { // 一条玩家对局数据（可独立�
 	}
 
 	public void write() {
-		PlayerInfo p = new PlayerInfo(id);
-		try {
-			ObjectOutputStream output = new ObjectOutputStream(
-					new FileOutputStream("data/players/" + id + "/" + "records/" + p.game_num));
-			output.writeObject(this);
-			output.close();
-			p.game_num++;
-			p.points += points;
-			p.write();
-		} catch (IOException e) {
+		synchronized (lock) {
+			PlayerInfo p = new PlayerInfo(id);
+			try {
+				ObjectOutputStream output = new ObjectOutputStream(
+						new FileOutputStream("data/players/" + id + "/" + "records/" + p.game_num));
+				output.writeObject(this);
+				output.close();
+				p.game_num++;
+				p.points += points;
+				p.write();
+			} catch (IOException e) {
+			}
 		}
+
 	}
 
 	public void show() {
