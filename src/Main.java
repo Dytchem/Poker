@@ -30,19 +30,23 @@ class Tester {
 		g.addPlayer("zjm");
 		g.addPlayer("Dytchem");
 		g.putCard();
+		g.save();
 		g.showRank();
 
 		g.addPlayer("bbb");
 		g.putCard();
+		g.save();
 		g.showRank();
 
 		g.addPlayer("ccc");
 		g.addPlayer("d");
 		g.putCard();
+		g.save();
 		g.showRank();
 
 		g.delPlayer("zjm");
 		g.putCard();
+		g.save();
 		g.showRank();
 	}
 

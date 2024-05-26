@@ -13,7 +13,7 @@ public class Panel {
 	Panel() {
 		input = new BufferedReader(new InputStreamReader(System.in));
 		output = new BufferedWriter(new OutputStreamWriter(System.err));
-		mt = new MultiThread(1000);
+		mt = new MultiThread();
 	}
 
 	private String read() {
@@ -167,7 +167,7 @@ public class Panel {
 					mt.del(t);
 				} catch (ArrayIndexOutOfBoundsException e) {
 				}
-			} else if (s.startsWith("output ")) {
+			} else if (s.startsWith("output")) {
 				String f;
 				try {
 					f = s.split(" ")[1];

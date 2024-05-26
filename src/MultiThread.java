@@ -28,26 +28,28 @@ class SingleThread extends Thread {
 				System.out.println("第" + t + "次");
 			}
 			data.add(game.scores.getRecords());
+			(new OneGame(game.scores.getShow())).write();
 			try {
 				Thread.sleep(duration);
 			} catch (InterruptedException e) {
+				break;
 			}
 		}
 	}
 }
 
 class MultiThread {
-	Data data;
-	int flag = 0;
-	ArrayList<SingleThread> threads;
+	private Data data;
+	private ArrayList<SingleThread> threads;
 
-	MultiThread(int d) {
-		data = new Data(d);
+	MultiThread() {
+		data = new Data();
+		data.start();
 		threads = new ArrayList<SingleThread>();
 	}
 
 	public void show() {
-		System.out.println("序号\t[玩家]\t\t次数");
+		System.out.println("序号\t[玩家列表]\t次数");
 		for (int i = 0; i < threads.size(); ++i) {
 			System.out.print(i + "\t[");
 			System.out.print(threads.get(i).game.players.getShow());
@@ -59,42 +61,23 @@ class MultiThread {
 		SingleThread t = new SingleThread(g, d, data);
 		threads.add(t);
 		t.start();
-		if (flag == 0) {
-			data.start();
-			flag = 1;
-		} else if (flag == 2) {
-			data.resume();
-			flag = 1;
-		}
 	}
 
 	public void del(int idx) {
-		threads.get(idx).stop();
+		threads.get(idx).interrupt();
 		threads.remove(idx);
-		if (threads.isEmpty()) {
-			data.suspend();
-			flag = 2;
-		}
-	}
-
-	public void delAll() {
-		for (SingleThread t : threads) {
-			t.stop();
-		}
-		threads.clear();
-		data.saveAll();
-		data.suspend();
-		flag = 2;
 	}
 
 	public void kill() {
-		delAll();
-		data.stop();
+		for (SingleThread t : threads) {
+			t.interrupt();
+		}
+		threads.clear();
+		data.interrupt();
+		// data.saveAll();
 	}
 
 	public void output(boolean b) {
-		for (SingleThread t : threads) {
-			t.output = b;
-		}
+		SingleThread.output = b;
 	}
 }

@@ -30,8 +30,7 @@ public class Game { // 游戏局
 			players.get(i).acquireHandCard(cards);
 		}
 		scores = new Scores(players);
-		total_game_num++;
-		save();
+		// save();
 	}
 
 	public void showRank() {

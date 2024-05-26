@@ -5,7 +5,7 @@
 
 import java.io.*;
 import java.nio.file.*;
-import java.util.*;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.time.LocalDateTime;
 
 class PlayerInfo { // 一条玩家数据（可独立用于存储）
@@ -136,6 +136,7 @@ class Records { // 玩家的所有对局数据（用于查询）
 }
 
 class OneGame {
+	private static final Object lock = new Object(); // 全局锁，让同一时间只能运行一个write方法。
 	private String s = "null";
 	int idx;
 
@@ -144,7 +145,7 @@ class OneGame {
 	}
 
 	OneGame(int idx) {
-		this.idx=idx;
+		this.idx = idx;
 		if (idx < 1 || idx > Game.total_game_num)
 			return;
 		try {
@@ -162,38 +163,45 @@ class OneGame {
 	}
 
 	public void write() {
-		Path root = Paths.get("data/games");
-		try {
-			if (!Files.exists(root))
-				Files.createDirectories(root);
-		} catch (Exception e) {
-		}
-		try {
-			ObjectOutputStream output = new ObjectOutputStream(
-					new FileOutputStream("data/games/" + Game.total_game_num));
-			output.writeObject(s);
-			output.close();
-		} catch (IOException e) {
+		synchronized (lock) {
+			Path root = Paths.get("data/games");
+			try {
+				if (!Files.exists(root))
+					Files.createDirectories(root);
+			} catch (Exception e) {
+			}
+			try {
+				Game.total_game_num++;
+				ObjectOutputStream output = new ObjectOutputStream(
+						new FileOutputStream("data/games/" + Game.total_game_num));
+				output.writeObject(s);
+				output.close();
+			} catch (IOException e) {
+			}
 		}
 	}
 }
 
 class Data extends Thread { // 待保存的数据队列（用于多线程中）
-	private Queue<Record> q;
-	int duration;
+	private LinkedBlockingQueue<Record> q; // 线程安全的队列，防止入队时线程互相干扰
 
-	Data(int d) {
-		q = new LinkedList<>();
-		duration = d;
+	Data() {
+		q = new LinkedBlockingQueue<Record>();
 	}
 
 	public void add(Record r) {
-		q.add(r);
+		try {
+			q.put(r);
+		} catch (InterruptedException e) {
+		}
 	}
 
 	public void add(Record[] rs) {
 		for (Record r : rs) {
-			q.add(r);
+			try {
+				q.put(r);
+			} catch (InterruptedException e) {
+			}
 		}
 	}
 
@@ -201,21 +209,19 @@ class Data extends Thread { // 待保存的数据队列（用于多线程中）
 		int t = q.size();
 		try {
 			for (int i = 0; i < t; ++i) {
-				q.poll().write();
+				q.take().write();
 			}
-		} catch (NullPointerException e) {
+		} catch (InterruptedException e) {
 		}
 	}
 
 	@Override
 	public void run() {
 		while (true) {
-			while (true) {
-				saveAll();
-				try {
-					Thread.sleep(duration);
-				} catch (InterruptedException e) {
-				}
+			try {
+				q.take().write();
+			} catch (InterruptedException e) {
+				break;
 			}
 		}
 	}
