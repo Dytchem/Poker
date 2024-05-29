@@ -189,7 +189,7 @@ public class Panel {
 	private void online() {
 		String s = "";
 		loop: while (true) {
-			write("1. 服务器模式\n" + "2. 客户端模式\n" + "3. 退出");
+			write("1. 服务器模式\n" + "2. 客户端模式\n" + "3. 退出\n");
 			s = read();
 			write("\n");
 			switch (s) {
@@ -209,7 +209,7 @@ public class Panel {
 		PokerServer server = new PokerServer();
 		String s = "";
 		while (true) {
-			write("`add [port]` 开启端口\n`pk [n] [port]` 端口port玩家pk n次\n`show [port]` 查看端口port所有玩家\n`quit` 退出");
+			write("`add [port]` 开启端口\n`pk [n] [port]` 端口port玩家pk n次\n`show [port]` 查看端口port所有玩家\n`quit` 退出\n");
 			s = read();
 			String[] t = s.split(" ");
 
@@ -248,7 +248,7 @@ public class Panel {
 			}
 		}
 		c.start();
-		System.out.println("连接成功！！！（输入`quit`退出）");
+		System.out.println("连接成功！！！（输入`quit`退出）\n");
 		if (read().equals("quit")) {
 			c.kill();
 		}

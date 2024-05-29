@@ -10,14 +10,16 @@ import java.util.*;
 class PokerClient extends Thread {
 	String id;
 	Socket s;
+	String host;
+	int port;
 
 	PokerClient(String host, int port, String id) throws Exception {
-		s = new Socket(host, port);
+		s = new Socket(this.host = host, this.port = port);
 		s.getInputStream().read();
 		this.id = id;
 		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(s.getOutputStream()));
-		writer.write("add " + id);
-
+		writer.write("add " + id + "\n");
+		writer.flush();
 	}
 
 	@Override
@@ -25,29 +27,39 @@ class PokerClient extends Thread {
 		while (true) {
 			try {
 				ObjectInputStream input = new ObjectInputStream(s.getInputStream());
+				BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(s.getOutputStream()));
 				Record r = (Record) input.readObject();
+				System.out.println("***************************************");
 				r.show();
-				Thread.sleep(500);
-				OneGame g = new OneGame((String) input.readObject());
-				g.show();
-				Thread.sleep(500);
-				input.close();
-			} catch (InterruptedException e) {
+				System.out.println();
+				writer.write("OK\n");
+				writer.flush();
+
+				String S = (String) input.readObject();
+				System.out.println(S);
+				System.out.println("***************************************");
+				OneGame g = new OneGame(S);
+				g.write();
+				writer.write("OK\n");
+				writer.flush();
+			} catch (IOException | ClassNotFoundException e) {
 				break;
-			} catch (IOException e) {
-			} catch (ClassNotFoundException e) {
 			}
 		}
 	}
 
 	public void kill() {
 		try {
-			s.shutdownInput();
-			s.close();
 			this.interrupt();
+			s.close();
+			s = new Socket(host, port);
 			BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(s.getOutputStream()));
-			writer.write("del " + id);
-		} catch (IOException e) {
+			writer.write("del " + id + "\n");
+			writer.flush();
+			writer.close();
+			s.close();
+		} catch (Exception e) {
+			System.out.println("退出失败");
 		}
 	}
 }
@@ -81,22 +93,29 @@ class ServerThread extends Thread {
 	}
 
 	public void play() {
+		String rank;
+		Record[] rs;
 		synchronized (this) {
 			game.putCard();
 			game.save();
-			String rank = game.scores.getShow();
+			rank = game.scores.getShow();
 			System.out.println(rank);
-			Record[] rs = game.scores.getRecords();
-			for (Record r : rs) {
-				try {
-					ObjectOutputStream output = new ObjectOutputStream(sockets.get(r.id).getOutputStream());
-					output.writeObject(r);
-					Thread.sleep(1000);
-					output.writeObject(rank);
-					Thread.sleep(1000);
-				} catch (IOException | InterruptedException e) {
-					delPlayer(r.id);
-				}
+			rs = game.scores.getRecords();
+		}
+		for (Record r : rs) {
+			try {
+				ObjectOutputStream output = new ObjectOutputStream(sockets.get(r.id).getOutputStream());
+				BufferedReader reader = new BufferedReader(new InputStreamReader(sockets.get(r.id).getInputStream()));
+				output.writeObject(r);
+				if (!reader.readLine().equals("OK"))
+					throw new Exception("未收到客户端响应");
+				output.writeObject(rank);
+				// System.err.println("Debug Here...");
+				if (!reader.readLine().equals("OK"))
+					throw new Exception("未收到客户端响应");
+			} catch (Exception e) {
+				delPlayer(r.id);
+				System.out.println("[" + r.id + " 莫名其妙退出了游戏]：" + e.toString() + "\n");
 			}
 		}
 	}
@@ -110,14 +129,17 @@ class ServerThread extends Thread {
 				cs.getOutputStream().write(0);
 				BufferedReader reader = new BufferedReader(new InputStreamReader(cs.getInputStream()));
 				String[] ss = reader.readLine().split(" ");
-				if (ss[0].equals("add"))
+				if (ss[0].equals("add")) {
 					addPlayer(ss[1], cs);
-				else if (ss[0].equals("del"))
+					System.out.println("[" + ss[1] + " 加入了游戏]\n");
+				} else if (ss[0].equals("del")) {
 					delPlayer(ss[1]);
-				Thread.sleep(1000);
+					System.out.println("[" + ss[1] + " 退出了游戏]\n");
+				}
 			} catch (Exception e) {
 				break;
 			}
+
 		}
 	}
 
@@ -147,6 +169,7 @@ class PokerServer {
 
 	public void play(int port, int t) {
 		for (int i = 0; i < t; ++i) {
+			// System.err.println(i);
 			sts[port].play();
 		}
 	}
@@ -157,7 +180,7 @@ class PokerServer {
 				s.kill();
 		}
 	}
-	
+
 	public void show(int port) {
 		sts[port].game.players.show();
 	}
