@@ -49,7 +49,7 @@ public class Panel {
 		Game.open();
 		String s = "";
 		loop: while (true) {
-			write("1. 开始对局\n" + "2. 查询数据\n" + "3. 管理线程\n" + "4. 退出游戏\n");
+			write("1. 开始对局\n" + "2. 查询数据\n" + "3. 管理线程\n" + "4. 在线模式\n" + "5. 退出游戏\n");
 			s = read();
 			write("\n");
 			switch (s) {
@@ -63,6 +63,9 @@ public class Panel {
 				controlThread();
 				break;
 			case "4":
+				online();
+				break;
+			case "5":
 				mt.kill();
 				Game.close();
 				break loop;
@@ -180,6 +183,74 @@ public class Panel {
 					mt.output(false);
 			} else if (s.startsWith("quit"))
 				break;
+		}
+	}
+
+	private void online() {
+		String s = "";
+		loop: while (true) {
+			write("1. 服务器模式\n" + "2. 客户端模式\n" + "3. 退出");
+			s = read();
+			write("\n");
+			switch (s) {
+			case "1":
+				server();
+				break;
+			case "2":
+				client();
+				break;
+			case "3":
+				break loop;
+			}
+		}
+	}
+
+	private void server() {
+		PokerServer server = new PokerServer();
+		String s = "";
+		while (true) {
+			write("`add [port]` 开启端口\n`pk [n] [port]` 端口port玩家pk n次\n`show [port]` 查看端口port所有玩家\n`quit` 退出");
+			s = read();
+			String[] t = s.split(" ");
+
+			try {
+				if (s.startsWith("add ")) {
+					server.addServer(Integer.parseInt(t[1]));
+				} else if (s.startsWith("pk ")) {
+					server.play(Integer.parseInt(t[2]), Integer.parseInt(t[1]));
+				} else if (s.startsWith("show")) {
+					server.show(Integer.parseInt(t[1]));
+				} else if (s.startsWith("quit")) {
+					server.kill();
+					break;
+				}
+			} catch (Exception e) {
+				System.out.println("输入错误！！！");
+			}
+		}
+	}
+
+	private void client() {
+		String id = "";
+		PokerClient c;
+		while (true) {
+			try {
+				write("请输入主机host：");
+				String host = read();
+				write("请输入主机port：");
+				int port = Integer.parseInt(read());
+				write("请输入玩家ID：");
+				id = read();
+				c = new PokerClient(host, port, id);
+				break;
+			} catch (Exception e) {
+				System.out.println("Error!!!");
+			}
+		}
+		c.start();
+		System.out.println("连接成功！！！（输入`quit`退出）");
+		if (read().equals("quit")) {
+			c.kill();
 		}
 	}
 }

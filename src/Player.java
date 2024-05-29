@@ -28,7 +28,7 @@ class Player implements Comparable<Player> { // 单个玩家
 }
 
 class Players { // 多个玩家
-	private ArrayList<Player> players;
+	ArrayList<Player> players;
 	int num;
 
 	Players() {
